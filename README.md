@@ -1,14 +1,15 @@
 # TF_DeepNLP
 
-TensorFlow implementations of several models in DeepNLP. The purpose of this repository is to provice implementations of models with consistent public interface. It is not recommended to use these models in real applications since these codes are not opitmized well.
+TensorFlow implementations of several models in DeepNLP. The purpose of this repository is to provice implementations of models with consistent public interface. It is not recommended to use these models in real applications since these codes are not optimized well.
 
 This repository is inspired by [DeepNLP-models-Pytorch](https://github.com/DSKSD/DeepNLP-models-Pytorch).
 
 ## Contents
 |Model                         |Links                                  |
 |------------------------------|---------------------------------------|
-|01. Word2Vec                  |[[notebook](1) / [data](1) / [paper](1)|
-|02. GloVe                     |[[notebook](2) / [data](2) / [paper](2)|
+|01. Word2Vec                  |[[notebook](https://nbviewer.jupyter.org/github/belepi93/TF_DeepNLP/blob/master/01.Word2Vec.ipynb) / [data](https://github.com/belepi93/TF_DeepNLP/blob/master/02.GloVe.ipynb) / [paper](https://papers.nips.cc/paper/5021-distributed-representations-of-words-and-phrases-and-their-compositionality.pdf)]|
+|02. GloVe                     |[[notebook](https://nbviewer.jupyter.org/github/belepi93/TF_DeepNLP/blob/master/02.GloVe.ipynb) / [data](https://github.com/belepi93/TF_DeepNLP/blob/master/02.GloVe.ipynb) / [paper](https://www.aclweb.org/anthology/D14-1162)]|
+
 
 ## Requirements
 - Python 3.6.5
