@@ -7,8 +7,8 @@ This repository is inspired by [DeepNLP-models-Pytorch](https://github.com/DSKSD
 ## Contents
 |Model                                    |Links                                  |
 |-----------------------------------------|---------------------------------------|
-|01. Word2Vec                  |[ [notebook](https://nbviewer.jupyter.org/github/belepi93/TF_DeepNLP/blob/master/01.Word2Vec.ipynb) / [data](https://github.com/belepi93/TF_DeepNLP/blob/master/02.GloVe.ipynb) / [paper](https://papers.nips.cc/paper/5021-distributed-representations-of-words-and-phrases-and-their-compositionality.pdf) ]|
-|02. GloVe                     |[ [notebook](https://nbviewer.jupyter.org/github/belepi93/TF_DeepNLP/blob/master/02.GloVe.ipynb) / [data](https://github.com/belepi93/TF_DeepNLP/blob/master/02.GloVe.ipynb) / [paper](https://www.aclweb.org/anthology/D14-1162) ]|
+|01. Word2Vec                  |[ [notebook](https://nbviewer.jupyter.org/github/belepi93/TF_DeepNLP/blob/master/01.Word2Vec.ipynb) / [data](https://www.kaggle.com/snap/amazon-fine-food-reviews) / [paper](https://papers.nips.cc/paper/5021-distributed-representations-of-words-and-phrases-and-their-compositionality.pdf) ]|
+|02. GloVe                     |[ [notebook](https://nbviewer.jupyter.org/github/belepi93/TF_DeepNLP/blob/master/02.GloVe.ipynb) / [data](https://www.kaggle.com/snap/amazon-fine-food-reviews) / [paper](https://www.aclweb.org/anthology/D14-1162) ]|
 
 
 ## Requirements
