@@ -80,21 +80,32 @@ class Word2VecModel():
             self.__context_input = tf.placeholder(tf.int32, shape=[self.batch_size],
                                                 name="context_words")
 
-            focal_embeddings = tf.get_variable("focal_embeddings", [self.vocab_size, self.embedding_size],
+            word_embeddings = tf.get_variable("word_embeddings", [self.vocab_size, self.embedding_size],
                                                initializer = tf.random_uniform_initializer(-1.0, 1.0))
             nce_weights = tf.get_variable("nce_weights", [self.vocab_size, self.embedding_size],
                                                initializer = tf.contrib.layers.xavier_initializer())
             nce_biases = tf.get_variable("nce_biases", [self.vocab_size],
                                                initializer = tf.zeros_initializer())
 
-            focal_embedding = tf.nn.embedding_lookup(focal_embeddings, self.__focal_input)
+            word_embedding = tf.nn.embedding_lookup(word_embeddings, self.__focal_input)
+            context_matrix = tf.reshape(tf.cast(self.__context_input, tf.int64), [self.batch_size, 1])
+
+            sampler = (tf.nn.fixed_unigram_candidate_sampler(
+                                    true_classes=context_matrix,
+                                    num_true=1,
+                                    num_sampled=self.negative_sample_size,
+                                    unique=True,
+                                    range_max=self.vocab_size,
+                                    distortion=self.scaling_factor,
+                                    unigrams=list(self.__word_counts)))
 
             single_losses = tf.nn.nce_loss(weights=nce_weights,
                                            biases=nce_biases,
-                                           labels=tf.reshape(self.__context_input, [self.batch_size, 1]),
-                                           inputs=focal_embedding,
+                                           labels=context_matrix,
+                                           inputs=word_embedding,
                                            num_sampled=self.negative_sample_size,
-                                           num_classes=self.vocab_size)
+                                           num_classes=self.vocab_size,
+                                           sampled_values=sampler)
 
             self.__total_loss = tf.reduce_mean(single_losses)
             tf.summary.scalar("Word2Vec_loss", self.__total_loss)
@@ -106,7 +117,7 @@ class Word2VecModel():
                 self.__total_loss, global_step=self.__global_step)
 
             self.__summary = tf.summary.merge_all()
-            self.__word_embeddings = focal_embeddings 
+            self.__word_embeddings = word_embeddings 
             
     def train(self, num_epochs, log_dir=None, save_dir=None, load_dir=None,
               summary_batch_interval=5000, saver_batch_interval=5000, tsne_epoch_interval=None, 
@@ -125,17 +136,21 @@ class Word2VecModel():
                 print("Saving TensorFlow models to {}".format(save_dir))
                 saver = tf.train.Saver(max_to_keep=5)
 
-            tf.global_variables_initializer().run()
-            print('-'*80)
-            print('Created and Initialized fresh model. Size:', _model_size())
-            print('Total number of batches:', len(batches))
-            print('-'*80)
-
             if load_dir is not None:
                 ckpt = tf.train.get_checkpoint_state(load_dir)
                 assert ckpt, "No checkpoint found"
                 assert ckpt.model_checkpoint_path, "No model path found in checkpoint"
                 saver.restore(session, ckpt.model_checkpoint_path)
+                print('-'*80)
+                print('Restored model from checkpoint. Size:', _model_size())
+                print('Total number of batches:', len(batches))
+                print('-'*80)
+            else:
+                tf.global_variables_initializer().run()
+                print('-'*80)
+                print('Created and Initialized fresh model. Size:', _model_size())
+                print('Total number of batches:', len(batches))
+                print('-'*80)
 
             for epoch in range(num_epochs):
                 shuffle(batches)
