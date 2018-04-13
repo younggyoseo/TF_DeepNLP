@@ -171,7 +171,7 @@ class GloVeModel():
                     losses.append(loss)
 
                     if (step + 1) % print_every == 0:
-                        print("step: {}, epoch:{}, time/batch: {}, avg_loss: {}".format(
+                        print("step: {}, epoch:{}, time/batch: {:.4}, avg_loss: {:.4}".format(
                             step + 1, epoch+1, (time.time() - batch_start_time)/print_every, np.mean(losses)))
                         batch_start_time = time.time()
                         losses.clear()

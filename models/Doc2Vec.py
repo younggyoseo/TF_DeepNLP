@@ -44,10 +44,10 @@ class Doc2VecModel():
         self.__build_graph()
 
     def __fit_to_corpus(self, corpus, vocab_size, min_occurrences, left_size, right_size):
-        self.__corpus = corpus  # this is inserted in order to label points in TSNE figure.
+        self.__corpus = corpus
         word_counts = Counter()
         window_list = []
-        self.__corpus_length = len(corpus)
+        self.__corpus_size = len(corpus)
 
         for doc_idx, region in enumerate(corpus):
             word_counts.update(region)
@@ -62,9 +62,11 @@ class Doc2VecModel():
         self.__words, self.__word_counts = list(zip(
             *[(word,count) for idx, (word,count) in enumerate(word_counts.most_common(vocab_size)) 
             if count >= min_occurrences])) #and np.random.random() > subsampling_probs[idx]]))
+        
+        self.__words = ("<PAD>",) + self.__words
+        self.__word_counts = (0,) + self.__word_counts
         # add "<PAD>" to self.__word_to_id
-        self.__word_to_id = {"<PAD>" : 0}
-        self.__word_to_id.update({word: i for i, word in enumerate(self.__words)})
+        self.__word_to_id = {word: i for i, word in enumerate(self.__words)}
 
         # local utility method for membership test of context_list
         def membership_test(seq, set):
@@ -91,7 +93,7 @@ class Doc2VecModel():
             
             word_embeddings = tf.get_variable("word_embeddings", [self.vocab_size, self.word_embedding_size],
                                                initializer = tf.random_uniform_initializer(-1.0, 1.0))
-            doc_embeddings = tf.get_variable("doc_embeddings", [self.vocab_size, self.doc_embedding_size],
+            doc_embeddings = tf.get_variable("doc_embeddings", [self.corpus_size, self.doc_embedding_size],
                                                initializer = tf.random_uniform_initializer(-1.0, 1.0))
             nce_weights = tf.get_variable("nce_weights", [self.vocab_size, concatenated_size],
                                                initializer = tf.contrib.layers.xavier_initializer())
@@ -135,7 +137,7 @@ class Doc2VecModel():
                                            sampled_values=sampler)
 
             self.__total_loss = tf.reduce_mean(single_losses)
-            tf.summary.scalar("Word2Vec_loss", self.__total_loss)
+            tf.summary.scalar("Doc2Vec_loss", self.__total_loss)
             self.__global_step = tf.Variable(0, name="global_step", trainable=False)
             learning_rate = tf.train.exponential_decay(self.learning_rate, self.__global_step,
                                                            10000, 0.95, staircase=True)
@@ -198,7 +200,7 @@ class Doc2VecModel():
                     losses.append(loss)
 
                     if (step + 1) % print_every == 0:
-                        print("step: {}, epoch:{}, time/batch: {}, avg_loss: {}".format(
+                        print("step: {}, epoch:{}, time/batch: {:.4}, avg_loss: {:.4}".format(
                             step + 1, epoch+1, (time.time() - batch_start_time)/print_every, np.mean(losses)))
                         batch_start_time = time.time()
                         losses.clear()
@@ -209,7 +211,7 @@ class Doc2VecModel():
                         print("Saved summaries at step {}".format(step + 1))
 
                     if should_save_models and (step + 1) % saver_batch_interval == 0:
-                        saver.save(session, os.path.join(save_dir, "word2vec-{}.model".format(step+1)))
+                        saver.save(session, os.path.join(save_dir, "doc2vec-{}.model".format(step+1)))
                         print("Saved a model at step {}".format(step + 1))
 
                 if should_generate_tsne and (epoch + 1) % tsne_epoch_interval == 0:
@@ -237,11 +239,11 @@ class Doc2VecModel():
         return list(_batchify(self.batch_size, focals, contexts))
 
     @property
-    def corpus_length(self):
-        if self.__corpus_length is None:
+    def corpus_size(self):
+        if self.__corpus_size is None:
             raise NotFitToCorpusError(
-                "Need to fit model to corpus before accessing corpus_length.")
-        return self.__corpus_length
+                "Need to fit model to corpus before accessing corpus_size.")
+        return self.__corpus_size
 
     @property
     def vocab_size(self):
