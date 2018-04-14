@@ -12,7 +12,7 @@ My implementations are largely based on [GradySimon/tensorflow-glove](https://gi
 |01. Word2Vec                  |[ [notebook](https://nbviewer.jupyter.org/github/belepi93/TF_DeepNLP/blob/master/01.Word2Vec.ipynb) / [model.py](https://github.com/belepi93/TF_DeepNLP/blob/master/models/Word2Vec.py) / [data](https://www.kaggle.com/snap/amazon-fine-food-reviews) / [paper](https://papers.nips.cc/paper/5021-distributed-representations-of-words-and-phrases-and-their-compositionality.pdf)  ]|
 |02. GloVe                     |[ [notebook](https://nbviewer.jupyter.org/github/belepi93/TF_DeepNLP/blob/master/02.GloVe.ipynb) / [model.py](https://github.com/belepi93/TF_DeepNLP/blob/master/models/GloVe.py) / [data](https://www.kaggle.com/snap/amazon-fine-food-reviews) / [paper](https://www.aclweb.org/anthology/D14-1162) ]|
 |03. Doc2Vec                   |[ [notebook](https://nbviewer.jupyter.org/github/belepi93/TF_DeepNLP/blob/master/03.Doc2Vec.ipynb) / [model.py](https://github.com/belepi93/TF_DeepNLP/blob/master/models/Doc2Vec.py) / [data](https://www.kaggle.com/snap/amazon-fine-food-reviews) / [paper](https://arxiv.org/pdf/1405.4053.pdf) ]|
-|04. NER with Window Classifier        |[ [notebook](https://nbviewer.jupyter.org/github/belepi93/TF_DeepNLP/blob/master/04.NER_WC.ipynb) / [model.py](https://github.com/belepi93/TF_DeepNLP/blob/master/models/WindowsClassifier.py) / data / paper ]|
+|04. NER with Window Classifier        |[ [notebook](https://nbviewer.jupyter.org/github/belepi93/TF_DeepNLP/blob/master/04.NER_WC.ipynb) / [model.py](https://github.com/belepi93/TF_DeepNLP/blob/master/models/WindowClassifier.py) / data / paper ]|
 
 
 ## Requirements
