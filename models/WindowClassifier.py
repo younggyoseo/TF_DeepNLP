@@ -3,6 +3,7 @@ import numpy as np
 import os
 import time
 import pickle
+import random
 from collections import Counter
 from random import shuffle
 from sklearn.metrics import classification_report
@@ -15,7 +16,7 @@ class NotFitToCorpusError(Exception):
 
 class WindowClassifier():
     def __init__(self, word_embedding_size, window_size, hidden_size, batch_size=128,
-                 learning_rate=0.001, negative_sample_size=5):
+                 learning_rate=0.001):
         print("DEBUG: 04132118")
         if isinstance(window_size, tuple):
             self.left_context, self.right_context = window_size
@@ -28,46 +29,52 @@ class WindowClassifier():
         self.hidden_size = hidden_size
         self.batch_size = batch_size
         self.learning_rate = learning_rate
-        self.negative_sample_size = negative_sample_size
         self.__words = None
         self.__word_to_id = None
         self.__embeddings = None
     
-    def fit_to_data(self, data, is_training=True):
-        self.__fit_to_data(data, self.left_context, self.right_context, is_training)
+    def fit_to_data(self, train_data, valid_data, is_training=True):
+        self.__fit_to_data(train_data, valid_data, left_size=self.left_context, right_size=self.right_context, 
+                           is_training=is_training)
         self.__build_graph()
 
-    def __fit_to_data(self, data, left_size, right_size, is_training):
-        word_counts = Counter()
-        word_window_list = []
-        entity_list = []
+    def __fit_to_data(self, *data, left_size, right_size, is_training):
+        data_list = list(data)
+        # TRAINING
+        if is_training == True:
+            assert len(data_list) == 2, "Input should be train data and valid data."
+            train_data, valid_data = data_list
 
-        for word_region, entity_region in data:
-            word_counts.update(word_region)
-            for l_context, word, r_context in _context_windows(word_region ,left_size, right_size):
-                l_list = ["<PAD>"] * (self.left_context - len(l_context)) + [word for word in l_context]
-                r_list = [word for word in r_context] + ["<PAD>"] * (self.right_context - len(r_context))
-                context_list = l_list + [word] + r_list
-                word_window_list.append(context_list)
-
-            for l_context, entity, r_context in _context_windows(entity_region, left_size, right_size):
-                entity_list.append(entity)
-
-        if len(word_window_list) == 0:
-            raise ValueError("No window data in corpus. Did you try to reuse a generator?")
-        
-        # In test phase, Do not change vocabulary.
-        if is_training:
+            # train data
+            word_window_list, entity_list, word_counts = self.__data2list(train_data, left_size, right_size, word_count=True)
             self.__entities = ['B-LOC', 'B-MISC', 'B-ORG', 'B-PER', 'I-LOC', 'I-MISC', 'I-ORG', 'I-PER', 'O']
             self.__entity_to_id = {entity: i for i, entity in enumerate(self.__entities)}
             self.__words = ["<PAD>", "<UNK>"] + [word for word in word_counts]
             self.__word_to_id = {word: i for i, word in enumerate(self.__words)}
 
-        # if word is not in vocabulary, label it as 1("<UNK>")
-        self.__window_list = list(zip(*(
-            [[self.__word_to_id[word] if word in self.__word_to_id else 1 for word in window]
-             for window in word_window_list],
-            [self.__entity_to_id[entity] for entity in entity_list])))
+            self.__train_window_list = list(zip(*(
+                [[self.__word_to_id[word] if word in self.__word_to_id else 1 for word in window]
+                for window in word_window_list],
+                [self.__entity_to_id[entity] for entity in entity_list])))
+
+            # valid data
+            word_window_list, entity_list = self.__data2list(valid_data, left_size, right_size)
+            self.__valid_window_list = list(zip(*(
+                [[self.__word_to_id[word] if word in self.__word_to_id else 1 for word in window]
+                for window in word_window_list],
+                [self.__entity_to_id[entity] for entity in entity_list])))
+
+        # TESTING
+        elif is_training == False:
+            assert len(data_list) == 1, "Input should be test data."
+            test_data = data_list[0]
+
+            # test data
+            word_window_list, entity_list = self.__data2list(test_data, left_size, right_size)
+            self.__test_window_list = list(zip(*(
+                [[self.__word_to_id[word] if word in self.__word_to_id else 1 for word in window]
+                for window in word_window_list],
+                [self.__entity_to_id[entity] for entity in entity_list])))
 
     def __build_graph(self):
         self.__graph = tf.Graph()
@@ -89,6 +96,7 @@ class WindowClassifier():
             b_output = tf.get_variable("b_output", [self.entity_size],
                                             initializer = tf.zeros_initializer())
 
+            # this op and comments are borrowed from https://github.com/mkroutikov/tf-lstm-char-cnn/blob/master/model.py
             # this op clears embedding vector of "<PAD>" and "<UNK>"
             # 1. after parameter initialization, apply this op to zero out padding embedding vector
             # 2. after each gradient update, apply this op to keep padding at zero
@@ -118,69 +126,100 @@ class WindowClassifier():
             self.__summary = tf.summary.merge_all()
             self.__word_embeddings = word_embeddings
 
-    def train(self, num_epochs, save_dir, log_dir=None, load_dir=None,
-              summary_batch_interval=5000, saver_batch_interval=5000, print_every=1000):
-        should_write_summaries = log_dir is not None and summary_batch_interval
-        should_save_models = save_dir is not None and saver_batch_interval
+    def train(self, num_epochs, save_dir, log_dir=None, load_dir=None, print_every=1000):
+        should_write_summaries = log_dir is not None
 
-        batches = self.__prepare_batches()
-        config = tf.ConfigProto(allow_soft_placement = True)
-        with tf.Session(graph=self.__graph, config=config) as session:
+        with tf.Session(graph=self.__graph) as session:
+            tf.set_random_seed(1004)
+            random.seed(1004)
             if should_write_summaries:
-                print("Writing TensorBoard summaries to {}".format(log_dir))
                 summary_writer = tf.summary.FileWriter(log_dir, graph=session.graph)
-            if should_save_models:
-                print("Saving TensorFlow models to {}".format(save_dir))
-                saver = tf.train.Saver(max_to_keep=5)
-
             if load_dir is not None:
                 self.__load(session, load_dir)
-                print("-"*80)
-                print('Restored model from checkpoint. Size:', _model_size())
-                print('Total number of batches:', len(batches))
-                print("-"*80)
+                print('-'*80 + '\n' + 'Restored model from checkpoint. Size: {}\n'.format(_model_size()) + '-'*80)
             else:
                 tf.global_variables_initializer().run()
                 session.run(self.__clear_word_embedding_padding)
-                print('-'*80)
-                print('Created and Initialized fresh model. Size:', _model_size())
-                print('Total number of batches:', len(batches))
-                print('-'*80)
+                print('-'*80 + '\n' + 'Created and Initialized fresh model. Size: {}\n'.format(_model_size()) + '-'*80)
 
-            for epoch in range(num_epochs):
-                shuffle(batches)
-                if epoch == 0:
-                    batch_start_time = time.time()
-                losses = []
-                for batch in batches:
+            saver = tf.train.Saver(max_to_keep=5)
+            train_batches = self.__prepare_batches("train")
+            valid_batches = self.__prepare_batches("valid")
+
+            for epoch in range(1, num_epochs+1):
+                epoch_start_time = time.time()
+                avg_train_loss = 0.0
+                total_cnt = 0
+                count = 0
+                shuffle(train_batches)
+                for batch in train_batches:
                     words, entities = batch
-                    if len(words) != self.batch_size:
-                        continue
-                    feed_dict = {
+                    total_cnt += len(words)
+                    count += 1
+                    start_time = time.time()
+
+                    loss, step, *_ = session.run([
+                        self.__total_loss,
+                        self.__global_step,
+                        self.__optimizer,
+                        self.__clear_word_embedding_padding
+                    ], {
                         self.__word_input: words,
-                        self.__entity_input: entities}
-                    loss, step, *_ = session.run([self.__total_loss, self.__global_step, 
-                                                  self.__optimizer, self.__clear_word_embedding_padding],
-                                                  feed_dict=feed_dict)
-                    losses.append(loss)
+                        self.__entity_input: entities
+                    })
+                    avg_train_loss += (loss * len(words))
+                    time_elapsed = time.time() - start_time
 
-                    if (step + 1) % print_every == 0:
-                        print("step: {}, epoch:{}, time/batch: {:.4}, avg_loss: {:.4}".format(
-                            step + 1, epoch+1, (time.time() - batch_start_time)/print_every, np.mean(losses)))
-                        batch_start_time = time.time()
-                        losses.clear()
+                    if count % print_every == 0:
+                        print("{:06d}: {} [{:05d}/{:05d}], train_loss = {:06.8f}, secs/batch = {:.4f}".format(
+                            step, epoch, count, len(train_batches), loss, time_elapsed))
 
-                    if should_write_summaries and (step + 1) % summary_batch_interval == 0:
-                        summary_str = session.run(self.__summary, feed_dict=feed_dict)
-                        summary_writer.add_summary(summary_str, step)
-                        print("Saved summaries at step {}".format(step + 1))
+                avg_train_loss = (avg_train_loss / total_cnt)
+                print("Epoch training time:", time.time()-epoch_start_time)
 
-                    if should_save_models and (step + 1) % saver_batch_interval == 0:
-                        saver.save(session, os.path.join(save_dir, "WC_NER-{}.model".format(step+1)))
-                        print("Saved a model at step {}".format(step + 1))
+                ''' evaluating '''
+                print("\nEvaluating..")
+                avg_valid_loss = 0.0
+                true_entity_list = []
+                pred_entity_list = []
+                total_cnt = 0
+                count = 0
+                for batch in valid_batches:
+                    words, entities = batch
+                    total_cnt += len(words)
+                    count += 1
+                    start_time = time.time()
 
-            # last save
-            saver.save(session, os.path.join(save_dir, "WC_NER-{}.model".format(step+1)))
+                    loss, pred_entities = session.run([
+                        self.__total_loss,
+                        self.__prediction,
+                    ], {
+                        self.__word_input: words,
+                        self.__entity_input: entities
+                    })
+                    avg_valid_loss += (loss * len(words))
+                    true_entity_list.extend(entities)
+                    pred_entity_list.extend(pred_entities)
+
+                # print table
+                target_names = self.__entities[:-1]  # remove "O" from targets.
+                labels = list(range(len(target_names)))
+                print(classification_report(true_entity_list, pred_entity_list, labels, target_names))
+
+                avg_valid_loss = (avg_valid_loss / total_cnt)
+                print("Finished Epoch {}".format(epoch))
+                print("train_loss = {:06.8f}, validation_loss = {:06.8f}\n".format(avg_train_loss, avg_valid_loss))
+
+                ''' save model '''
+                saver.save(session, os.path.join(save_dir, 'epoch{:03d}_{:.4f}.model'.format(epoch, avg_valid_loss)))
+
+                if should_write_summaries:
+                    ''' save summary events '''
+                    summary = tf.Summary(value=[
+                        tf.Summary.Value(tag="train_loss", simple_value=avg_train_loss),
+                        tf.Summary.Value(tag="valid_loss", simple_value=avg_valid_loss)
+                    ])
+                    summary_writer.add_summary(summary, step)
 
             self.__embeddings = self.__word_embeddings.eval()
             if should_write_summaries:
@@ -188,50 +227,94 @@ class WindowClassifier():
 
     def test(self, test_data, load_dir):
         # fit to test data
-        self.fit_to_data(test_data, is_training=False)
+        self.__fit_to_data(test_data, left_size=self.left_context, right_size=self.right_context, is_training=False)
+        test_batches = self.__prepare_batches("test")
 
-        batches = self.__prepare_batches()
-        config = tf.ConfigProto(allow_soft_placement = True)
-        with tf.Session(graph=self.__graph, config=config) as session:
+        with tf.Session(graph=self.__graph) as session:
             self.__load(session, load_dir)
             print("-"*80)
             print('Restored model from checkpoint for testing. Size:', _model_size())
             print("-"*80)
 
+            ''' testing '''
             true_entity_list = []
             pred_entity_list = []
-
-            for batch in batches:
+            total_cnt = 0
+            count = 0
+            start_time = time.time()
+            for batch in test_batches:
                 words, entities = batch
-                feed_dict = {
+                total_cnt += len(words)
+                count += 1
+
+                pred_entities = session.run(
+                    self.__prediction
+                , {
                     self.__word_input: words,
-                    self.__entity_input: entities}
-                pred_entities = session.run(self.__prediction, feed_dict)
-            
+                    self.__entity_input: entities
+                })
+
                 true_entity_list.extend(entities)
                 pred_entity_list.extend(pred_entities)
-            
+
+            time_elapsed = time.time() - start_time
             target_names = self.__entities[:-1]  # remove "O" from targets.
             labels = list(range(len(target_names)))
 
-            # print results
             print(classification_report(true_entity_list, pred_entity_list, labels, target_names))
-            
+            print("test samples: {:06d}, time elapsed: {:.4f}, time per one batch: {:.4f}".format(total_cnt, time_elapsed, time_elapsed/count))
 
-    
+
     def embedding_for(self, word_str_or_id):
         if isinstance(word_str_or_id, str):
             return self.embeddings[self.__word_to_id[word_str_or_id]]
         elif isinstance(word_str_or_id, int):
             return self.embeddings[word_str_or_id]
 
-    def __prepare_batches(self):
-        if self.__window_list is None:
+    def __prepare_batches(self, mode="train"):
+        ''' mode = train/valid/test '''
+        if mode == "train" and self.__train_window_list is None:
             raise NotFitToCorpusError(
-                "Need to fit model to corpus before preparing training batches.")
+                "Need to fit model to data before preparing training batches.")
+        if mode == "valid" and self.__valid_window_list is None:
+            raise NotFitToCorpusError(
+                "Need to fit model to data before preparing valid batches.")
+        if mode == "test" and self.__test_window_list is None:
+            raise NotFitToCorpusError(
+                "Need to fit model to data before preparing test batches.")
 
-        words, entities = zip(*self.__window_list)
+        if mode == "train":
+            window_list = self.__train_window_list
+        elif mode == "valid":
+            window_list = self.__valid_window_list
+        elif mode == "test":
+            window_list = self.__test_window_list
+        else:
+            raise TypeError("mode should be 'train'/'valid'/'test'")
+
+        words, entities = zip(*window_list)
         return list(_batchify(self.batch_size, words, entities))
+
+    def __data2list(self, data, left_size, right_size, word_count=False):
+        if word_count: word_counts = Counter()
+        word_window_list = []
+        entity_list = []
+
+        for word_region, entity_region in data:
+            if word_count: word_counts.update(word_region)
+            for l_context, word, r_context in _context_windows(word_region, left_size, right_size):
+                l_list = ["<PAD>"] * (self.left_context - len(l_context)) + [word for word in l_context]
+                r_list = [word for word in r_context] + ["<PAD>"] * (self.right_context - len(r_context))
+                context_list = l_list + [word] + r_list
+                word_window_list.append(context_list)
+            
+            for l_context, entity, r_context in _context_windows(entity_region ,left_size, right_size):
+                entity_list.append(entity)
+        
+        if word_count:
+            return word_window_list, entity_list, word_counts
+        else:
+            return word_window_list, entity_list
 
     def __load(self, session, load_dir):
         saver = tf.train.Saver(max_to_keep=5)
