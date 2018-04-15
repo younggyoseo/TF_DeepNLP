@@ -13,7 +13,8 @@ My implementations are largely based on [GradySimon/tensorflow-glove](https://gi
 |02. GloVe                     |[ [notebook](https://nbviewer.jupyter.org/github/belepi93/TF_DeepNLP/blob/master/02.GloVe.ipynb) / [model.py](https://github.com/belepi93/TF_DeepNLP/blob/master/models/GloVe.py) / [data](https://www.kaggle.com/snap/amazon-fine-food-reviews) / [paper](https://www.aclweb.org/anthology/D14-1162) ]|
 |03. Doc2Vec                   |[ [notebook](https://nbviewer.jupyter.org/github/belepi93/TF_DeepNLP/blob/master/03.Doc2Vec.ipynb) / [model.py](https://github.com/belepi93/TF_DeepNLP/blob/master/models/Doc2Vec.py) / [data](https://www.kaggle.com/snap/amazon-fine-food-reviews) / [paper](https://arxiv.org/pdf/1405.4053.pdf) ]|
 |04. NER with Window Classifier        |[ [notebook](https://nbviewer.jupyter.org/github/belepi93/TF_DeepNLP/blob/master/04.NER_WC.ipynb) / [model.py](https://github.com/belepi93/TF_DeepNLP/blob/master/models/WindowClassifier.py) / data / paper ]|
-|05. RNN Language Model        |[ [notebook](https://nbviewer.jupyter.org/github/belepi93/TF_DeepNLP/blob/master/05.RNN_LM.ipynb) / [model.py](https://github.com/belepi93/TF_DeepNLP/blob/master/models/RNN_LM.py) / [data](http://www.fit.vutbr.cz/~imikolov/rnnlm/simple-examples.tgz) / paper ]|
+|05. WordRNN        |[ [notebook](https://nbviewer.jupyter.org/github/belepi93/TF_DeepNLP/blob/master/05.WordRNN.ipynb) / [model.py](https://github.com/belepi93/TF_DeepNLP/blob/master/models/WordRNN.py) / [data](http://www.fit.vutbr.cz/~imikolov/rnnlm/simple-examples.tgz) / paper ]|
+|06. CharRNN        |[ [notebook](https://nbviewer.jupyter.org/github/belepi93/TF_DeepNLP/blob/master/05.CharRNN.ipynb) / [model.py](https://github.com/belepi93/TF_DeepNLP/blob/master/models/CharRNN.py) / [data](http://www.fit.vutbr.cz/~imikolov/rnnlm/simple-examples.tgz) / paper ]|
 
 
 
