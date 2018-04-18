@@ -11,10 +11,11 @@ class NotTrainedError(Exception):
 class NotFitToCorpusError(Exception):
     pass
 
-class CharRNN():
-    def __init__(self, hidden_size, num_unroll_steps=35, batch_size=128, cell="RNN", 
-                 dropout_keep_prob=0.5, learning_rate=0.001, grad_clip=5., num_layers=1):
-        print("DEBUG: 04160104")
+class LSTMCharCNN():
+    def __init__(self, hidden_size, num_unroll_steps=35, batch_size=128, cell="LSTM", 
+                 dropout_keep_prob=0.5, learning_rate=0.001, grad_clip=5.,
+                 lstm_num_layer=1, highway_num_layer=1):
+        print("DEBUG: 04182200")
         self.num_unroll_steps = num_unroll_steps
         self.hidden_size = hidden_size
         self.batch_size = batch_size
@@ -23,23 +24,31 @@ class CharRNN():
         self.grad_clip = grad_clip
         self.num_layers = num_layers
         self.cell = cell
+        self.lstm_num_layer = lstm_num_layer,
+        self.highway_num_layer = highway_num_layer,
         self.__chars = None
         self.__char_to_id = None
     
     def fit_to_corpus(self, corpus):
-        self.__fit_to_corpus(corpus)
+        self.__fit_to_corpus(corpus, True)
         self.__build_graph()
 
-    def __fit_to_corpus(self, corpus):
-        char_counts = Counter()
-        for sequence in corpus:
-            char_counts.update(sequence)
-        count_pairs = sorted(char_counts.items(), key=lambda x: -x[1])
-        self.__chars, _ = zip(*count_pairs)
-        self.__char_to_id = {char: i for i, char in enumerate(self.__chars)}
-        self.__train_char_list = np.array(
-            [self.__char_to_id[ch] for sequence in corpus for ch in sequence], dtype=np.int32)
-        
+    def __fit_to_corpus(self, data, is_training):
+        # TRAINING
+        if is_training == True:
+            train_word, valid_word, train_char, valid_char, word_to_idx, char_to_idx = data
+            self.__words = list(word_to_idx.keys())
+            self.__word_to_id = word_to_idx
+            self.__chars = list(char_to_idx.keys())
+            self.__char_to_id = char_to_idx
+            self.__train_list = list(zip(train_word, train_char))
+            self.__valid_list = list(zip(valid_word, valid_char))
+            self.__max_word_length = train_word.shape[1]
+
+        else:
+            test_word, test_char = data
+            self.__test_list = list(zip(test_word, test_char))
+
     def __build_graph(self, sampling=False):
         if sampling:
             self.__sampling_graph = tf.Graph()
@@ -49,9 +58,9 @@ class CharRNN():
         graph = self.__graph if not sampling else self.__sampling_graph
 
         with graph.as_default():
-            self.__input = tf.placeholder(tf.int32,
-                                          shape=[self.batch_size, self.num_unroll_steps])
-            self.__target = tf.placeholder(tf.int32,
+            self.__chars= tf.placeholder(tf.int32,
+                                          shape=[self.batch_size, self.num_unroll_steps, self.__max_word_length])
+            self.__words = tf.placeholder(tf.int32,
                                            shape=[self.batch_size, self.num_unroll_steps])
             self.__dropout = tf.placeholder(tf.float32)
 
@@ -272,21 +281,35 @@ class CharRNN():
         return ''.join(observed_seq)
 
 
-    def __prepare_batches(self):
-        if self.__train_char_list is None:
+    def __prepare_batches(self, mode="train"):
+        ''' mode = train/valid/test '''
+        if mode == "train" and self.__train_list is None:
             raise NotFitToCorpusError(
                 "Need to fit model to corpus before preparing training batches.")
-        input_list = self.__train_char_list.copy()
-        reduced_length = (len(input_list) // (self.batch_size * self.num_unroll_steps)) * self.batch_size * self.num_unroll_steps
-        input_list = input_list[:reduced_length]
-        
-        target_list = np.zeros_like(input_list)
-        target_list[:-1] = input_list[1:].copy()
-        target_list[-1] = input_list[0].copy()
+        if mode == "valid" and self.__valid_list is None:
+            raise NotFitToCorpusError(
+                "Need to fit model to corpus before preparing valid batches.")
+        if mode == "test" and self.__test_list is None:
+            raise NotFitToCorpusError(
+                "Need to fit model to corpus before preparing test batches.")
 
-        input_list = input_list.reshape([-1, self.num_unroll_steps])
-        target_list = target_list.reshape([-1, self.num_unroll_steps])
-        return list(_batchify(self.batch_size, input_list, target_list))
+        if mode == "train":
+            input_list = self.__train_list.copy()
+        elif mode == "valid":
+            input_list = self.__valid_list.copy()
+        elif mode == "test":
+            input_list = self.__test_list.copy()
+        else:
+            raise TypeError("mode should be 'train'/'valid'/'test'")
+
+        reduced_length = (len(input_list) // (self.batch_size * self.num_unroll_steps)) * self.batch_size * self.num_unrol_steps
+        input_list = input_list[:reduced_length]
+        word_list, char_list = zip(*input_list)
+
+        char_list = np.reshape(char_list, [self.batch_size, self.num_unroll_steps, self.__max_word_length])
+        word_list = np.reshape(word_list, [self.batch_size, self.num_unroll_steps])
+
+        return list(_batchify(self.batch_size, char_list, word_list))
 
     def __load(self, session, load_dir):
         saver = tf.train.Saver(max_to_keep=5)
@@ -303,13 +326,23 @@ class CharRNN():
         return char_id
 
     @property
-    def vocab_size(self):
-        return len(self.__chars)
+    def word_vocab_size(self):
+        return len(self.words)
+
+    @property
+    def char_vocab_size(self):
+        return len(self.chars)
+
+    @property
+    def words(self):
+        if self.__words is None:
+            raise NotFitToCorpusError("Need to fit model to corpus before accessing words.")
+        return self.__words
 
     @property
     def chars(self):
         if self.__chars is None:
-            raise NotFitToCorpusError("Need to fit model to corpus before accessing words.")
+            raise NotFitToCorpusError("Need to fit model to corpus before accessing chars.")
         return self.__chars
 
     def id_for_char(self, char):
