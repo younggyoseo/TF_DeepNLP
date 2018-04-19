@@ -261,8 +261,8 @@ class WordRNN():
                     avg_valid_loss += loss / len(valid_batches)
 
                 print("Finished Epoch {}".format(epoch))
-                print("train_loss = {:06.8f}, perflexity = {:06.8f}".format(avg_train_loss, np.exp(avg_train_loss)))
-                print("validation_loss = {:06.8f}, perflexity = {:06.8f}\n".format(avg_valid_loss, np.exp(avg_valid_loss)))
+                print("train_loss = {:06.8f}, perplexity = {:06.8f}".format(avg_train_loss, np.exp(avg_train_loss)))
+                print("validation_loss = {:06.8f}, perplexity = {:06.8f}\n".format(avg_valid_loss, np.exp(avg_valid_loss)))
 
                 ''' save model '''
                 saver.save(session, os.path.join(save_dir, 'epoch{:03d}_{:.4f}.model'.format(epoch, avg_valid_loss)))
@@ -271,7 +271,9 @@ class WordRNN():
                     ''' save summary events '''
                     summary = tf.Summary(value=[
                         tf.Summary.Value(tag="train_loss", simple_value=avg_train_loss),
-                        tf.Summary.Value(tag="valid_loss", simple_value=avg_valid_loss)
+                        tf.Summary.Value(tag="valid_loss", simple_value=avg_valid_loss),
+                        tf.Summary.Value(tag="train_perplexity", simple_value=np.exp(avg_train_loss)),
+                        tf.Summary.Value(tag="valid_perplexity", simple_value=np.exp(avg_valid_loss))
                     ])
                     summary_writer.add_summary(summary, step)
                 
@@ -386,8 +388,12 @@ class WordRNN():
         target_list[:-1] = input_list[1:].copy()
         target_list[-1] = input_list[0].copy()
 
-        input_list = input_list.reshape([-1, self.num_unroll_steps])
-        target_list = target_list.reshape([-1, self.num_unroll_steps])
+        input_list = input_list.reshape([self.batch_size, -1, self.num_unroll_steps])
+        target_list = target_list.reshape([self.batch_size, -1, self.num_unroll_steps])
+
+        input_list = np.transpose(input_list, axes=(1,0,2)).reshape(-1, self.num_unroll_steps)
+        target_list = np.transpose(target_list, axes=(1,0,2)).reshape(-1, self.num_unroll_steps)
+
         return list(_batchify(self.batch_size, input_list, target_list))
 
     def __load(self, session, load_dir):

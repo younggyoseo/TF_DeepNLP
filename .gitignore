@@ -6,3 +6,4 @@ log/*
 data/*
 tmp/*
 *.pyc
+temp.py

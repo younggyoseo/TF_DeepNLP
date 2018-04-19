@@ -105,24 +105,24 @@ class CNN():
                     # Apply Nonlinearity and concatenate the results from the two filters
                     h_static_1 = tf.nn.relu(
                         features = tf.nn.bias_add(conv_static_1, b),
-                        name = "h_static")
+                        name = "h_static_1")
                     h_static_2 = tf.nn.relu(
                         features = tf.nn.bias_add(conv_static_2, b),
-                        name = "h_non_static")
+                        name = "h_static_2")
                 
                     pooled_1 = tf.nn.max_pool(
                         value = h_static_1,
                         ksize = [1, self.__max_seq_length - filter_window + 1, 1, 1],
                         strides = [1,1,1,1],
                         padding = "VALID",
-                        name = "pool")  # [batch_size, 1, 1, filter_window]
+                        name = "pooled_1")  # [batch_size, 1, 1, filter_window]
 
                     pooled_2 = tf.nn.max_pool(
                         value = h_static_2,
                         ksize = [1, self.__max_seq_length - filter_window + 1, 1, 1],
                         strides = [1,1,1,1],
                         padding = "VALID",
-                        name = "pool")  # [batch_size, 1, 1, filter_window]
+                        name = "pooled_2")  # [batch_size, 1, 1, filter_window]
                     
                     pooled_outputs.append(pooled_1)
                     pooled_outputs.append(pooled_2)

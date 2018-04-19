@@ -224,6 +224,7 @@ class CharRNN():
                     ''' save summary events '''
                     summary = tf.Summary(value=[
                         tf.Summary.Value(tag="train_loss", simple_value=avg_train_loss),
+                        tf.Summary.Value(tag="train_perplexity", simple_value=np.exp(avg_train_loss))
                     ])
                     summary_writer.add_summary(summary, step)
                 
@@ -284,8 +285,11 @@ class CharRNN():
         target_list[:-1] = input_list[1:].copy()
         target_list[-1] = input_list[0].copy()
 
-        input_list = input_list.reshape([-1, self.num_unroll_steps])
-        target_list = target_list.reshape([-1, self.num_unroll_steps])
+        input_list = input_list.reshape([self.batch_size, -1, self.num_unroll_steps])
+        target_list = target_list.reshape([self.batch_size, -1, self.num_unroll_steps])
+
+        input_list = np.transpose(input_list, axes=(1,0,2)).reshape(-1, self.num_unroll_steps)
+        target_list = np.transpose(target_list, axes=(1,0,2)).reshape(-1, self.num_unroll_steps)
         return list(_batchify(self.batch_size, input_list, target_list))
 
     def __load(self, session, load_dir):
