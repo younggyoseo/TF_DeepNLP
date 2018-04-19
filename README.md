@@ -15,6 +15,8 @@ My implementations are largely based on [GradySimon/tensorflow-glove](https://gi
 |04. NER with Window Classifier        |[ [notebook](https://nbviewer.jupyter.org/github/belepi93/TF_DeepNLP/blob/master/04.NER_WC.ipynb) / [model.py](https://github.com/belepi93/TF_DeepNLP/blob/master/models/WindowClassifier.py) / data / paper ]|
 |05. WordRNN        |[ [notebook](https://nbviewer.jupyter.org/github/belepi93/TF_DeepNLP/blob/master/05.WordRNN.ipynb) / [model.py](https://github.com/belepi93/TF_DeepNLP/blob/master/models/WordRNN.py) / [data](http://www.fit.vutbr.cz/~imikolov/rnnlm/simple-examples.tgz) / paper ]|
 |06. CharRNN        |[ [notebook](https://nbviewer.jupyter.org/github/belepi93/TF_DeepNLP/blob/master/06.CharRNN.ipynb) / [model.py](https://github.com/belepi93/TF_DeepNLP/blob/master/models/CharRNN.py) / [data](http://www.fit.vutbr.cz/~imikolov/rnnlm/simple-examples.tgz) / paper ]|
+|07. CNN            |[ [notebook](https://nbviewer.jupyter.org/github/belepi93/TF_DeepNLP/blob/master/07.CNN.ipynb) / [model.py](https://github.com/belepi93/TF_DeepNLP/blob/master/models/CNN.py) / [data](https://bothameister.github.io/) / [paper](https://arxiv.org/abs/1408.5882) ]|
+|08. LSTMCharCNN    |[ [notebook](https://nbviewer.jupyter.org/github/belepi93/TF_DeepNLP/blob/master/08.LSTMCharCNN.ipynb) / [model.py](https://github.com/belepi93/TF_DeepNLP/blob/master/models/LSTMCharCNN.py) / [data](https://bothameister.github.io/) / [paper](https://arxiv.org/abs/1508.06615) ]|
 
 
 
