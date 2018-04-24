@@ -1,0 +1,13 @@
+.ipynb_checkpoints/*
+.vscode/*
+__pycache__/*
+save/*
+log/*
+tmp/*
+data/.ipynb_checkpoints
+*.pkl
+*.pyc
+*.bin
+*.csv
+temp.py
+
