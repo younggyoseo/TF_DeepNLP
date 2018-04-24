@@ -50,7 +50,7 @@ class LSTMCharCNN():
             self.__max_word_length = max_word_length
 
         else:
-            test_word, test_char = data
+            test_word, test_char = corpus
             self.__test_list = list(zip(test_word, test_char))
 
     def __build_graph(self, sampling=False):
@@ -338,7 +338,7 @@ class LSTMCharCNN():
                     time_elapsed = time.time() - start_time
 
                     if count % print_every == 0:
-                        print("{:06d}: {} [{:05d}/{:05d}], train_loss/perflexity = {:06.8f}/{:06.7f}, secs/batch = {:.4f}, grad.norm={:06.8f}".format(
+                        print("{:06d}: {} [{:05d}/{:05d}], train_loss/perplexity = {:06.8f}/{:06.7f}, secs/batch = {:.4f}, grad.norm={:06.8f}".format(
                             step, epoch, count, len(train_batches), loss, np.exp(loss), time_elapsed, grad_norm))
 
                 print("Epoch training time:", time.time()-epoch_start_time)

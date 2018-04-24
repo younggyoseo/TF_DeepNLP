@@ -215,7 +215,7 @@ class CharRNN():
                 print("Epoch training time:", time.time()-epoch_start_time)
 
                 print("Finished Epoch {}".format(epoch))
-                print("train_loss = {:06.8f}, perflexity = {:06.8f}".format(avg_train_loss, np.exp(avg_train_loss)))
+                print("train_loss = {:06.8f}, perplexity = {:06.8f}".format(avg_train_loss, np.exp(avg_train_loss)))
 
                 ''' save model '''
                 saver.save(session, os.path.join(save_dir, 'epoch{:03d}_{:.4f}.model'.format(epoch, avg_train_loss)))

@@ -1,9 +1,11 @@
 .ipynb_checkpoints/*
+data/.ipynb_checkpoints
 .vscode/*
 __pycache__/*
 save/*
 log/*
-data/*
 tmp/*
+*.pkl
 *.pyc
 temp.py
+*.bin

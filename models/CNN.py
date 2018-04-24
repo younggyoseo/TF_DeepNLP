@@ -65,13 +65,14 @@ class CNN():
                 trainable = False)
 
             # Embedding Layer
-            word_embedding_static = tf.nn.embedding_lookup(  
+            word_embedding_static = tf.nn.embedding_lookup(
                 params = word_embeddings_static,
-                ids = self.__input)  # [batch_size, max_seq_length, word_embedding_size]
+                ids = self.__input,
+                name = "word_embedding_static")
 
             word_embedding_static_expanded = tf.expand_dims(
                 input = word_embedding_static,
-                axis = -1)           # [batch_size, max_seq_length, word_embedding_size, 1]
+                axis = -1)
 
             # Convolution Layers
             pooled_outputs = []

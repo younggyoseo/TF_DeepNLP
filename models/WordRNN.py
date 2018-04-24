@@ -232,7 +232,7 @@ class WordRNN():
                     time_elapsed = time.time() - start_time
 
                     if count % print_every == 0:
-                        print("{:06d}: {} [{:05d}/{:05d}], train_loss/perplexity = {:06.8f}/{:06.7f} secs/batch = {:.4f}".format(
+                        print("{:06d}: {} [{:05d}/{:05d}], train_loss/perplexity = {:06.8f}/{:06.7f}, secs/batch = {:.4f}".format(
                             step, epoch, count, len(train_batches), loss, np.exp(loss), time_elapsed))
 
                 print("Epoch training time:", time.time()-epoch_start_time)
